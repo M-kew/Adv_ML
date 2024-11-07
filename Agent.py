@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from transformers import AutoModel, AutoTokenizer
 from torch.distributions import Categorical
-
+import random
 import subprocess
 
 # Unaligned LLM: Wizard-vicuna-uncensored-7B
@@ -34,7 +34,7 @@ class Agent(nn.Module):
 
         # Freeze the encoder weights
         for param in self.encoder.parameters():
-            param.requires_grad = False
+            param.requires_grad = True
 
         # Define the classifier
         self.classifier = nn.Sequential(
@@ -60,6 +60,7 @@ class Agent(nn.Module):
         ]
 
     def forward(self, state_text):
+        print(f"HEREEEE{state_text}")
         # Tokenize input text
         inputs = self.tokenizer(
             state_text, return_tensors='pt', padding=True, truncation=True
@@ -70,18 +71,23 @@ class Agent(nn.Module):
             outputs = self.encoder(**inputs)
             # Use the [CLS] token's embedding as the sentence representation
             cls_embedding = outputs.last_hidden_state[:, 0, :]
+            
+
 
         # Pass through the classifier
         logits = self.classifier(cls_embedding)
 
         # Convert logits to probabilities
         action_probs = torch.softmax(logits, dim=-1)
-        print(f"here{action_probs}")
+        print(f"action probs: {action_probs}")
 
         # Create a categorical distribution to sample actions
         m = Categorical(action_probs)
         action = m.sample()
-        print(f"here2{action}")
+        print(f"here{action}")
+        print(action.item())
+        # select_index = random.randint(0, 9)
+        # print("selected index:", select_index)
 
         return action.item(), action_probs, m.log_prob(action), m.entropy()
 

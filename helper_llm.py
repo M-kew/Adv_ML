@@ -26,10 +26,10 @@ def helper_llm(strategy_instruction, current_prompt, harmful_question, determini
     Simulates the helper LLM generating a jailbreaking prompt based on the selected strategy.
     """
     # For deterministic behavior, we fix the random seed
-    if deterministic:
-        random.seed(42)
-        np.random.seed(42)
-        torch.manual_seed(42)
+    # if deterministic:
+    #     random.seed(42)
+    #     np.random.seed(42)
+    #     torch.manual_seed(42)
 
     # Simulate the helper LLM's response
     if strategy_instruction in [
@@ -47,18 +47,21 @@ def helper_llm(strategy_instruction, current_prompt, harmful_question, determini
     else:
         # Create a new context
         new_prompt = f"{strategy_instruction}\n\nQuestion: {harmful_question}"
+        print("-------------------------------------------------")
+        print("this is a new prompt: ", new_prompt)
+        print("-------------------------------------------------")
+        # new_prompt = f"{current_prompt}\n\n{new_prompt}"
+    
+    # # For actions involving context change, apply crossover operation
+    # if strategy_instruction not in [
+    #     "Rephrase the existing prompt.",
+    #     "Add sentences in front of the existing prompt.",
+    #     "Expand the existing prompt with more details."
+    # ]:
+ 
 
-    # For actions involving context change, apply crossover operation
-    if strategy_instruction not in [
-        "Rephrase the existing prompt.",
-        "Add sentences in front of the existing prompt.",
-        "Expand the existing prompt with more details."
-    ]:
-        new_prompt = f"{current_prompt}\n\n{new_prompt}"
-
-    return new_prompt
-
-
+    jailbreak_prompt = query_ollama(new_prompt)
+    return jailbreak_prompt
 
 # # Example usage
 # if __name__ == '__main__':

@@ -38,11 +38,11 @@ class Agent(nn.Module):
 
         # Define the classifier
         self.classifier = nn.Sequential(
-            nn.Linear(self.encoder.config.hidden_size, 1024),
+            nn.Linear(self.encoder.config.hidden_size, 256),
             nn.ReLU(),
-            nn.Linear(1024, 1024),
+            nn.Linear(256, 512),
             nn.ReLU(),
-            nn.Linear(1024, num_actions)  # Output size equals number of actions
+            nn.Linear(512, num_actions)  # Output size equals number of actions
         )
 
         # Action to strategy mapping

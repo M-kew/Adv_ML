@@ -15,6 +15,7 @@ from transformers import BertModel, BertTokenizer
 import torch
 import torch.nn.functional as F
 from sklearn.metrics.pairwise import cosine_similarity
+from ollama_utils import query_ollama
 from sentence_transformers import SentenceTransformer
 
 model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -42,26 +43,6 @@ def compute_reward_bert(target_response, reference_answer, device='cpu'):
     print("-------------------------------------------------")
     print(f"Cosine Similarity: {cos_sim.item():.4f}")
     return cos_sim.item()
-
-
-
-def query_ollama(prompt):
-    # Construct the command to run
-    cmd = ['ollama', 'run', 'llama3']
-
-    # Start the process
-    process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-    # Send the prompt to the process
-    stdout, stderr = process.communicate(prompt)
-
-    # Check for errors
-    if process.returncode != 0:
-        print(f"Error: {stderr}")
-        return None
-
-    return stdout.strip()
-
 
 def compute_reward_mean_pooling(target_response, reference_response, text_encoder):
     """
@@ -169,10 +150,10 @@ def compute_reward(target_response, reference_response, text_encoder):
 
 
 # Hyperparameters
-num_epochs = 1000
+num_epochs = 10
 gamma = 0.99  # Discount factor
 epsilon = 0.1  # Clipping parameter for PPO
-learning_rate = 1e-4
+learning_rate = 1e-3
 max_time_steps = 5
 success_threshold = 0.75
 
@@ -181,7 +162,7 @@ optimizer = optim.Adam(agent.classifier.parameters(), lr=learning_rate)
 
 
 # Read the CSV file into a DataFrame
-harmful_questions_df = pd.read_csv("/Users/mkew/top_50_toxic_answers_2.csv")
+harmful_questions_df = pd.read_csv("./top_50_toxic_answers_2.csv")
 
 # Extract the 'prompt' column as a list
 harmful_questions = harmful_questions_df['prompt'].tolist()
@@ -225,7 +206,7 @@ for idx, (harmful_question, reference_answer) in enumerate(zip(harmful_questions
       
 
             # Target LLM generates a response
-            target_response = query_ollama(jailbreaking_prompt)
+            target_response = query_ollama(jailbreaking_prompt, "llama2")
             print("-------------------------------------------------")
             print("target response: ", target_response)
             print("-------------------------------------------------")
@@ -293,7 +274,6 @@ for idx, (harmful_question, reference_answer) in enumerate(zip(harmful_questions
         # Compute policy loss
         policy_loss = - (log_probs * returns).sum()
 
-
         # Update the agent
         optimizer.zero_grad()
         policy_loss.backward()
@@ -330,7 +310,7 @@ def evaluate_agent(agent, harmful_questions, reference_answers):
             )
 
             # Target LLM generates a response
-            target_response = query_ollama(jailbreaking_prompt)
+            target_response = query_ollama(jailbreaking_prompt, "llama2")
 
             # Compute reward
             reward = compute_reward(
